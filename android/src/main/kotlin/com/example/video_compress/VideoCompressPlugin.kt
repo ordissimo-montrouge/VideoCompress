@@ -83,48 +83,50 @@ class VideoCompressPlugin : MethodCallHandler, FlutterPlugin {
                 val duration = call.argument<Int>("duration")
                 val includeAudio = call.argument<Boolean>("includeAudio") ?: true
                 val frameRate = if (call.argument<Int>("frameRate")==null) 30 else call.argument<Int>("frameRate")
+                val targetWidth = call.argument<Int>("targetWidth")!!
+                val targetHeight = call.argument<Int>("targetHeight")!!
 
                 val tempDir: String = context.getExternalFilesDir("video_compress")!!.absolutePath
                 val out = SimpleDateFormat("yyyy-MM-dd hh-mm-ss").format(Date())
                 val destPath: String = tempDir + File.separator + "VID_" + out + path.hashCode() + ".mp4"
 
-                var videoTrackStrategy: TrackStrategy = DefaultVideoStrategy.atMost(340).build();
+                val videoTrackStrategy: TrackStrategy = DefaultVideoStrategy.exact(targetWidth, targetHeight).build()
                 val audioTrackStrategy: TrackStrategy
 
-                when (quality) {
-
-                    0 -> {
-                      videoTrackStrategy = DefaultVideoStrategy.atMost(720).build()
-                    }
-
-                    1 -> {
-                        videoTrackStrategy = DefaultVideoStrategy.atMost(360).build()
-                    }
-                    2 -> {
-                        videoTrackStrategy = DefaultVideoStrategy.atMost(640).build()
-                    }
-                    3 -> {
-
-                        assert(value = frameRate != null)
-                        videoTrackStrategy = DefaultVideoStrategy.Builder()
-                                .keyFrameInterval(3f)
-                                .bitRate(1280 * 720 * 4.toLong())
-                                .frameRate(frameRate!!) // will be capped to the input frameRate
-                                .build()
-                    }
-                    4 -> {
-                        videoTrackStrategy = DefaultVideoStrategy.atMost(480, 640).build()
-                    }
-                    5 -> {
-                        videoTrackStrategy = DefaultVideoStrategy.atMost(540, 960).build()
-                    }
-                    6 -> {
-                        videoTrackStrategy = DefaultVideoStrategy.atMost(720, 1280).build()
-                    }
-                    7 -> {
-                        videoTrackStrategy = DefaultVideoStrategy.atMost(1080, 1920).build()
-                    }                    
-                }
+//                when (quality) {
+//
+//                    0 -> {
+//                      videoTrackStrategy = DefaultVideoStrategy.atMost(720).build()
+//                    }
+//
+//                    1 -> {
+//                        videoTrackStrategy = DefaultVideoStrategy.atMost(360).build()
+//                    }
+//                    2 -> {
+//                        videoTrackStrategy = DefaultVideoStrategy.atMost(640).build()
+//                    }
+//                    3 -> {
+//
+//                        assert(value = frameRate != null)
+//                        videoTrackStrategy = DefaultVideoStrategy.Builder()
+//                                .keyFrameInterval(3f)
+//                                .bitRate(1280 * 720 * 4.toLong())
+//                                .frameRate(frameRate!!) // will be capped to the input frameRate
+//                                .build()
+//                    }
+//                    4 -> {
+//                        videoTrackStrategy = DefaultVideoStrategy.atMost(480, 640).build()
+//                    }
+//                    5 -> {
+//                        videoTrackStrategy = DefaultVideoStrategy.atMost(540, 960).build()
+//                    }
+//                    6 -> {
+//                        videoTrackStrategy = DefaultVideoStrategy.atMost(720, 1280).build()
+//                    }
+//                    7 -> {
+//                        videoTrackStrategy = DefaultVideoStrategy.atMost(1080, 1920).build()
+//                    }
+//                }
 
                 audioTrackStrategy = if (includeAudio) {
                     val sampleRate = DefaultAudioStrategy.SAMPLE_RATE_AS_INPUT

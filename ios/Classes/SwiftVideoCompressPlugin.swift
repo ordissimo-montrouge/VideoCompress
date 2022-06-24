@@ -7,7 +7,9 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
     private var stopCommand = false
     private let channel: FlutterMethodChannel
     private let avController = AvController()
-    
+
+    private var compression: Compression? = nil
+
     init(channel: FlutterMethodChannel) {
         self.channel = channel
     }
@@ -42,8 +44,74 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
             let duration = args!["duration"] as? Double
             let includeAudio = args!["includeAudio"] as? Bool
             let frameRate = args!["frameRate"] as? Int
-            compressVideo(path, quality, deleteOrigin, startTime, duration, includeAudio,
-                          frameRate, result)
+            let targetWidth = args!["targetWidth"] as! Int
+            let targetHeight = args!["targetHeight"] as! Int
+
+                var desPath: URL
+//                 if(destinationPath == nil){
+                    // Declare destination path and remove anything exists in it
+                    desPath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("\(UUID().uuidString).mp4")
+                    try? FileManager.default.removeItem(at: desPath)
+//                 } else{
+//                     desPath = URL(fileURLWithPath: destinationPath!)
+//                 }
+
+                let videoCompressor = LightCompressor()
+
+                compression = videoCompressor.compressVideo(
+                    source: URL(fileURLWithPath: path),
+                    destination: desPath,
+                    quality: VideoQuality.high,
+                    frameRate: frameRate,
+                    targetWidth: targetWidth,
+                    targetHeight: targetHeight,
+                    isMinBitrateCheckEnabled: false,
+                    progressQueue: .main,
+                    progressHandler: nil,
+//                     progressHandler: { progress in
+//                         DispatchQueue.main.async { [unowned self] in
+//                             if(self.eventSink != nil){
+//                                 let progress = Float(progress.fractionCompleted * 100)
+//                                 if(progress <= 100) {
+//                                     self.eventSink!(progress)
+//                                 }
+//                             }
+//                         }
+//                     },
+                    completion: { compressionResult in
+
+                        switch compressionResult {
+                        case .onSuccess(let path):
+//                             if(saveInGallery) {
+//                                 DispatchQueue.main.async {
+//                                     PHPhotoLibrary.shared().performChanges({
+//                                         PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: path)
+//                                     })
+//                                 }
+//                             }
+
+                            var json = self.getMediaInfoJson(path.path)
+                            let jsonString = Utility.keyValueToJson(json)
+                            return result(jsonString)
+
+//                             let response: [String: String] = ["onSuccess": path.path]
+//                             result(response.toJson)
+
+                        case .onStart: break
+
+                        case .onFailure(let error):
+                            let response: [String: String] = ["onFailure": error.title]
+                            result(response.toJson)
+
+                        case .onCancelled:
+                            let response: [String: Bool] = ["onCancelled": true]
+                            result(response.toJson)
+                        }
+                    }
+                )
+
+                    //             compressVideo(path, quality, deleteOrigin, startTime, duration, includeAudio,
+                    //                           frameRate, result)
         case "cancelCompression":
             cancelCompression(result)
         case "deleteAllCache":
@@ -207,7 +275,7 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
         exporter.outputURL = compressionUrl
         exporter.outputFileType = AVFileType.mp4
         exporter.shouldOptimizeForNetworkUse = true
-        
+
         if frameRate != nil {
             let videoComposition = AVMutableVideoComposition(propertiesOf: sourceVideoAsset)
             videoComposition.frameDuration = CMTimeMake(value: 1, timescale: Int32(frameRate!))
@@ -259,4 +327,17 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
         result("")
     }
     
+}
+
+extension Encodable {
+    var toJson: String? {
+        let jsonEncoder = JSONEncoder()
+        jsonEncoder.outputFormatting = .prettyPrinted
+        do {
+            let jsonData = try jsonEncoder.encode(self)
+            return String(data: jsonData, encoding: .utf8)
+        } catch {
+            return nil
+        }
+    }
 }
