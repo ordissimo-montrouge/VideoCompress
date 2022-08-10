@@ -102,6 +102,7 @@ public struct LightCompressor {
 
         print("targetHeight \(targetHeight)")
         print("targetWidth \(targetWidth)")
+        print("frameRate \(frameRate)")
 
         // Total Frames
         let durationInSeconds = videoAsset.duration.seconds
@@ -111,6 +112,7 @@ public struct LightCompressor {
         } else {
              newFrameRate = Int(videoTrack.nominalFrameRate)
         }
+        print("newFrameRate \(newFrameRate)")
 
         let totalFrames = ceil(durationInSeconds * Double(newFrameRate))
 
